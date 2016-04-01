@@ -197,6 +197,8 @@ struct App {
 class TodosViewController: UIViewController {
 
   let state: () -> TodoState = App.store.getState
+  
+  let height: CGFloat = 64
 
   let tableView = UITableView()
   let navigationBar = UINavigationBar()
@@ -219,7 +221,8 @@ class TodosViewController: UIViewController {
   
     view.addSubview(tableView)
     tableView.snp_makeConstraints { make in
-      make.edges.equalTo(view).inset(UIEdgeInsets(top: 50, left: 0, bottom: 0, right: 0))
+    
+      make.edges.equalTo(view).inset(UIEdgeInsets(top: height, left: 0, bottom: 0, right: 0))
     }
   }
 
@@ -228,12 +231,13 @@ class TodosViewController: UIViewController {
     let navigationItem = UINavigationItem(title: "Todos")
     navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Compose, target: self, action: #selector(TodosViewController.addTodo(_:)))
     navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Trash, target: self, action: #selector(TodosViewController.removeAllTodos(_:)))
+    navigationItem.leftBarButtonItem?.tintColor = UIColor.redColor()
     
     navigationBar.setItems([navigationItem], animated: false)
     
     view.addSubview(navigationBar)
       navigationBar.snp_makeConstraints { make in
-      make.height.equalTo(50)
+      make.height.equalTo(height)
       make.width.equalTo(view)
     }
   }
