@@ -5,6 +5,6 @@
       location = "group:Carthage/Checkouts/SnapKit/SnapKit.xcodeproj">
    </FileRef>
    <FileRef
-      location = "group:ReduxTest.playground">
+      location = "group:/Users/kittinunf/Documents/ios/ReduxPlayground/ReduxPlayground.playground">
    </FileRef>
 </Workspace>

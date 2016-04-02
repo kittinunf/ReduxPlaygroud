@@ -134,6 +134,19 @@ struct AddTodoAction : StandardAction {
   }
 }
 
+struct MoveTodoAction : StandardAction {
+  let type: String = "MOVE_TODO"
+  let payload: Any?
+  
+  init() {
+    payload = (-1, -1)
+  }
+  
+  init(fromIndex: Int, toIndex: Int) {
+    payload = (fromIndex, toIndex)
+  }
+}
+
 struct RemoveTodoAction : StandardAction {
   let type: String = "REMOVE_TODO"
   let payload: Any?
@@ -171,6 +184,11 @@ func todoReducer(state: TodoState? = nil, action: ActionType) -> TodoState {
       let index = action.payload as! Int
       todos.removeAtIndex(index)
       change.fromIndex = index
+    case let action as MoveTodoAction:
+      let (fromIndex, toIndex) = action.payload as! (Int, Int)
+      let item = todos[fromIndex]
+      todos.removeAtIndex(fromIndex)
+      todos.insert(item, atIndex: toIndex)
     case _ as RemoveAllTodosAction:
       todos.removeAll()
     default:
@@ -200,7 +218,6 @@ count
 
 import XCPlayground
 import SnapKit
-
 struct App {
   static let store = createStore(todoReducer, state: nil)
 }
@@ -242,7 +259,6 @@ class TodosViewController: UIViewController {
   
     view.addSubview(tableView)
     tableView.snp_makeConstraints { make in
-    
       make.edges.equalTo(view).inset(UIEdgeInsets(top: height, left: 0, bottom: 0, right: 0))
     }
   }
@@ -250,9 +266,9 @@ class TodosViewController: UIViewController {
   private func setUpNavigationBar() {
     
     let navigationItem = UINavigationItem(title: "Todos")
-    navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Compose, target: self, action: #selector(TodosViewController.addTodo(_:)))
-    navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .Trash, target: self, action: #selector(TodosViewController.removeAllTodos(_:)))
-    navigationItem.leftBarButtonItem?.tintColor = UIColor.redColor()
+    
+    navigationItem.rightBarButtonItem = createAddBarButtonItem()
+    navigationItem.leftBarButtonItems = [deleteAllBarButtonItem(), editBarButtonItem()]
     
     navigationBar.setItems([navigationItem], animated: false)
     
@@ -261,6 +277,21 @@ class TodosViewController: UIViewController {
       make.height.equalTo(height)
       make.width.equalTo(view)
     }
+  }
+  
+  private func createAddBarButtonItem() -> UIBarButtonItem {
+    return UIBarButtonItem(barButtonSystemItem: .Compose, target: self, action: #selector(TodosViewController.addTodo(_:)))
+  }
+  
+  private func deleteAllBarButtonItem() -> UIBarButtonItem {
+    let barButtonItem = UIBarButtonItem(barButtonSystemItem: .Trash, target: self, action: #selector(TodosViewController.removeAllTodos(_:)))
+    barButtonItem.tintColor = UIColor.redColor()
+    return barButtonItem
+  }
+  
+  private func editBarButtonItem() -> UIBarButtonItem {
+    let barButtonItem = UIBarButtonItem(barButtonSystemItem: .Edit, target: self, action: #selector(TodosViewController.editTodos(_:)))
+    return barButtonItem
   }
 }
 
@@ -280,6 +311,12 @@ extension TodosViewController {
   }
 }
 
+extension TodosViewController {
+  func editTodos(item: UIBarButtonItem) {
+    tableView.setEditing(!tableView.editing, animated: true)
+  }
+}
+
 extension TodosViewController : UITableViewDataSource {
   func tableView(tableView: UITableView, numberOfRowsInSection section: Int) -> Int{
     return state().todos.count;
@@ -290,6 +327,17 @@ extension TodosViewController : UITableViewDataSource {
     cell.textLabel?.text = state().todos[indexPath.row]
     return cell
   }
+  
+  func tableView(tableView: UITableView, commitEditingStyle editingStyle: UITableViewCellEditingStyle, forRowAtIndexPath indexPath: NSIndexPath) {
+    if editingStyle == .Delete {
+      App.store.dispatch(RemoveTodoAction(payload: indexPath.row))
+    }
+  }
+  
+  func tableView(tableView: UITableView, moveRowAtIndexPath sourceIndexPath: NSIndexPath, toIndexPath destinationIndexPath: NSIndexPath) {
+    App.store.dispatch(MoveTodoAction(fromIndex: sourceIndexPath.row, toIndex:  destinationIndexPath.row))
+  }
+  
 }
 
 extension TodosViewController : UITableViewDelegate {
