@@ -28,8 +28,14 @@ protocol StandardAction : ActionType {
 Single source of truth for your __Store__
 */
 
+struct Change {
+  var fromIndex: Int = -1
+  var toIndex: Int = -1
+}
+
 struct TodoState {
   var todos: [String]
+  let change: Change
 }
 
 /*:
@@ -41,7 +47,7 @@ Function that explains how you react to your __State__ when __Action__ happened
 
 func reducer(state: TodoState? = nil, action: ActionType) -> TodoState {
   //do something with state
-  return TodoState(todos: [])
+  return TodoState(todos: [], change: Change())
 }
 
 /*:
@@ -153,21 +159,26 @@ struct RemoveAllTodosAction : StandardAction {
 
 // define reducer
 func todoReducer(state: TodoState? = nil, action: ActionType) -> TodoState {
-  let currentState = state ?? TodoState(todos: [])
+  let currentState = state ?? TodoState(todos: [], change: Change())
   
   var todos = currentState.todos
+  var change = Change()
   switch action {
     case let action as AddTodoAction:
       todos.append(action.payload as! String)
+      change.toIndex = todos.count - 1
     case let action as RemoveTodoAction:
-      todos.removeAtIndex(action.payload as! Int)
+      let index = action.payload as! Int
+      todos.removeAtIndex(index)
+      change.fromIndex = index
     case _ as RemoveAllTodosAction:
       todos.removeAll()
     default:
       break
   }
   
-  return TodoState(todos: todos)
+  print(change.fromIndex, change.toIndex)
+  return TodoState(todos: todos, change: change)
 }
 
 let store = createStore(todoReducer, state: nil)
@@ -208,8 +219,18 @@ class TodosViewController: UIViewController {
     setUpTableView()
     setUpNavigationBar()
     
-    App.store.subscribe { _ in
-      self.tableView.reloadData()
+    App.store.subscribe { state in
+      if (state.change.fromIndex == -1 && state.change.toIndex == -1) {
+        self.tableView.reloadData()
+      } else {
+        if (state.change.fromIndex == -1) {
+          //insert
+          self.tableView.insertRowsAtIndexPaths([NSIndexPath(forRow: state.change.toIndex, inSection: 0)], withRowAnimation: .Top)
+        } else if (state.change.toIndex == -1) {
+          //delete
+          self.tableView.deleteRowsAtIndexPaths([NSIndexPath(forRow: state.change.fromIndex, inSection: 0)], withRowAnimation: .Left)
+        }
+      }
     }
   }
 
